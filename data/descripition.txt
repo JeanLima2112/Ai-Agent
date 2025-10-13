@@ -1,0 +1,61 @@
+Procuramos profissionais que queiram se reinventar a cada dia, que queiram enfrentar desafios em seu DNA e que sejam apaixonados por trabalhar com tecnologia/cibersegurança. Isso nos torna únicos e autênticos.
+
+
+O que buscamos?
+
+Procuramos um profissional Engenheiro de Dados Pleno, para compor nosso time.
+
+
+O que vai fazer?
+
+Atuar em um ambiente aberto à inovação e novas ideias.
+Contribuir para a estratégia de dados da empresa, promovendo democratização e governança da informação.
+Construir soluções escaláveis de ingestão, transformação e disponibilização de dados.
+Desenvolver e evoluir pipelines e arquiteturas modernas de dados.
+Atuar na resolução de problemas, correção de bugs e otimização de processos.
+Colaborar com times multidisciplinares, apoiando decisões baseadas em dados.
+Aprender continuamente e gerar impacto real na saúde, crescendo junto com a empresa.
+
+
+O que é necessário? 
+
+Sólida experiência como Engenheiro(a) de Dados, atuando em projetos de médio e grande porte.
+Experiência sólida em Python, SQL e SSIS (SQL Server Integration Services).
+Vivência com processos ETL e orquestração de pipelines (batch e streaming).
+Experiência prática com Azure Data Factory, Databricks e Data Lake.
+Conhecimento em modelagem de dados, arquitetura de dados e Lakehouse.
+Experiência em ambiente Cloud.
+
+
+O que é desejável?
+
+Experiência com Power BI, Synapse Analytics ou Snowflake.
+Conhecimentos em CI/CD aplicado a pipelines de dados.
+Experiência com monitoramento e observabilidade de pipelines (DataOps).
+Certificações em Azure Data Engineer, Databricks ou Big Data.
+Vivência no setor da saúde ou interesse em atuar nesse segmento.
+
+
+Modalidade: Atuação Híbrida, 3x presenciais por semana na região da Chácara Santo Antônio/SP.
+Modelo de contratação: PJ
+
+
+PORQUE NA ENTELGY TUDO COMEÇA COM VOCÊ!
+
+Cuidar de si em todos os aspectos é uma máxima na Entelgy, portanto, o equilíbrio entre vida pessoal e profissional é algo que valorizamos e facilitamos com nosso modelo de trabalho flexível.
+Nossa cultura é vivida todos os dias, somos como uma grande família e formamos a Família Entelgy, onde você pode participar de atividades, eventos, concursos e muito mais. Dispomos também de um conjunto de iniciativas que visam incentivar uma vida saudável e equilibrada, como a nossa plataforma digital de Saúde e Bem-Estar MyWellness.
+
+
+É ASSIM QUE COLOCAMOS TODO O NOSSO POTENCIAL A FAVOR DO SEU TALENTO!
+
+Venha fazer parte da nossa equipe e descubra que não é só o que fazemos, mas como fazemos. Atreva-se a viver uma experiência Genuína!
+
+
+
+Para nos conhecer um pouco mais acesse nossos links:
+
+https://www.instagram.com/entelgybrasil/ 
+
+https://www.linkedin.com/company/entelgy-brasil
+
+https://youtu.be/wh0eaQHEM5w?si=FZRdHU01NHdUtOrJ

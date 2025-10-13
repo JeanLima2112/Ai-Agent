@@ -1,9 +1,18 @@
 fastapi
 uvicorn
 sqlalchemy
-passlib[bcript]
-python-jose[criptography]
+passlib[bcrypt]
+python-jose[cryptography]
 python-dotenv
 python-multipart
 psycopg2-binary
 
+# PDFs
+PyMuPDF
+reportlab
+
+# LangChain + Google GenAI (usados em main.py e api.py)
+langchain
+langchain-core
+langchain-community
+langchain-google-genai
