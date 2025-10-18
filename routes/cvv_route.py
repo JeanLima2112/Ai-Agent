@@ -7,6 +7,7 @@ from langchain_community.document_loaders import PyMuPDFLoader
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 from langchain.chains.combine_documents import create_stuff_documents_chain
 from langchain.schema import Document
+from langchain_core.prompts import ChatPromptTemplate
 
 from pathlib import Path
 import tempfile
@@ -24,6 +25,17 @@ embeddings = GoogleGenerativeAIEmbeddings(
     model="models/gemini-embedding-001",
     google_api_key=os.getenv("GOOGLE_API_KEY"),
 )
+# PROMPT = ChatPromptTemplate.from_messages(
+#     [
+#         (
+#             "system",
+#             "Você é um assistente útil que ajuda a responder perguntas sobre quesitos de Ética. "
+#             "Se você não souber a resposta, diga 'Não sei'. "
+#             "Não invente uma resposta.\n\n",
+#         ),
+#         ("user", "Pergunta: {input}\n\nContexto:\n{context}"),
+#     ]
+# )
 
 # document_chain = create_stuff_documents_chain(llm, prompt=PROMPT) Criar o Prompt
 
@@ -46,14 +58,17 @@ async def create_cvv(
             tmp_path = tmp.name
 
         loader = PyMuPDFLoader(tmp_path)
-        docs = loader.load()
-        print(f"Arquivo carregado: {pdf_file.filename}, {len(docs)} páginas")
+        pdf_docs = loader.load()
+        print(f"Arquivo carregado: {pdf_file.filename}, {len(pdf_docs)} páginas")
 
-        docs.append(Document(page_content=description))
+        desc_doc = Document(page_content=description)
 
         splitter = RecursiveCharacterTextSplitter(chunk_size=300, chunk_overlap=30)
-        chunks = splitter.split_documents(docs)
-        print(f"Documentos divididos: {len(chunks)} chunks")
+        pdf_chunks = splitter.split_documents(pdf_docs)
+        desc_chunks = splitter.split_documents([desc_doc])
+
+        print(f"Chunks do PDF: {len(pdf_chunks)}")
+        print(f"Chunks da descrição: {len(desc_chunks)}")
 
         
 
@@ -77,7 +92,8 @@ async def create_cvv(
     return {
         "filename": pdf_file.filename,
         "description": description,
-        "pages_loaded": len(docs)
+        "pdf_chunks": len(pdf_chunks),
+        "description_chunks": len(desc_chunks)
     }
 
 
