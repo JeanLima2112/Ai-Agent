@@ -6,6 +6,7 @@ from langchain_google_genai import GoogleGenerativeAIEmbeddings, ChatGoogleGener
 from langchain_community.document_loaders import PyMuPDFLoader
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 from langchain.chains.combine_documents import create_stuff_documents_chain
+from langchain.schema import Document
 
 from pathlib import Path
 import tempfile
@@ -47,6 +48,9 @@ async def create_cvv(
         loader = PyMuPDFLoader(tmp_path)
         docs = loader.load()
         print(f"Arquivo carregado: {pdf_file.filename}, {len(docs)} páginas")
+
+        docs.append(Document(page_content=description))
+
         splitter = RecursiveCharacterTextSplitter(chunk_size=300, chunk_overlap=30)
         chunks = splitter.split_documents(docs)
         print(f"Documentos divididos: {len(chunks)} chunks")
