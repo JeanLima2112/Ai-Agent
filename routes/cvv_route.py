@@ -9,6 +9,7 @@ from langchain.chains.combine_documents import create_stuff_documents_chain
 from langchain.schema import Document
 from langchain_core.prompts import ChatPromptTemplate
 
+
 from pathlib import Path
 import tempfile
 
@@ -25,19 +26,22 @@ embeddings = GoogleGenerativeAIEmbeddings(
     model="models/gemini-embedding-001",
     google_api_key=os.getenv("GOOGLE_API_KEY"),
 )
-# PROMPT = ChatPromptTemplate.from_messages(
-#     [
-#         (
-#             "system",
-#             "Você é um assistente útil que ajuda a responder perguntas sobre quesitos de Ética. "
-#             "Se você não souber a resposta, diga 'Não sei'. "
-#             "Não invente uma resposta.\n\n",
-#         ),
-#         ("user", "Pergunta: {input}\n\nContexto:\n{context}"),
-#     ]
-# )
-
-# document_chain = create_stuff_documents_chain(llm, prompt=PROMPT) Criar o Prompt
+PROMPT = ChatPromptTemplate.from_messages(
+    [
+        (
+            "system",
+            "Você é um redator de currículos de elite, especialista em marketing pessoal e otimização para ATS. Sua única missão é transformar o currículo fornecido em um documento de marketing de alto impacto, reescrevendo cada informação para que pareça o mais impressionante e valiosa possível, com o objetivo final de garantir a chamada para a entrevista.\n\n"
+            "REGRAS DE TRANSFORMAÇÃO:\n"
+            "1.  **Reenquadramento para Impacto**: Não liste responsabilidades, transforme-as em conquistas. Cada item de experiência deve responder à pergunta: 'Que valor ou resultado positivo eu gerei para a empresa?'. Ex: 'Fazia relatórios' se torna 'Desenvolvi relatórios analíticos que otimizaram a tomada de decisão da liderança em 15%'.\n"
+            "2.  **Quantificação Agressiva**: Procure ativamente por qualquer oportunidade de adicionar números, percentagens, valores monetários ($) ou prazos. Se o currículo original não tiver métricas, use a sua expertise para inferir o impacto e insira placeholders estratégicos para o usuário confirmar. Ex: '[Confirmar: Aumento de aproximadamente 20-30% na eficiência]'.\n"
+            "3.  **Linguagem de Liderança e Inovação**: Utilize um vocabulário poderoso e proativo. Prefira verbos que denotem liderança, iniciativa e melhoria contínua (ex: Orquestrei, Pioneirei, Revolucionei, Otimizei, Escalei, Implementei) em vez de verbos passivos (ex: Ajudei, Fui responsável por).\n"
+            "4.  **Alinhamento Estratégico com a Vaga**: Analise a vaga para entender não só as palavras-chave, mas o 'problema' que a empresa quer resolver com essa contratação. Posicione o candidato como a solução direta para esse problema em todo o texto do currículo, especialmente no Resumo Profissional.\n"
+            "5.  **Princípio da Excelência**: Assuma que todas as tarefas foram executadas com um alto grau de competência e descreva-as como tal. O objetivo é criar uma percepção de um profissional de alto desempenho."
+        ),
+        ("user", "Pergunta: {input}\n\nContexto:\n{context}"),
+    ]
+)
+document_chain = create_stuff_documents_chain(llm, prompt=PROMPT)
 
 print(os.getenv("GOOGLE_API_KEY"))
 
