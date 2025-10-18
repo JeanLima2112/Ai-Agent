@@ -12,4 +12,7 @@ services:
       - .:/app
     environment:
       - PYTHONUNBUFFERED=1
+      - PYTHONPATH=/app
+    working_dir: /app
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
     restart: unless-stopped
