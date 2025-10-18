@@ -1,36 +1,24 @@
+version: '3.8'
+
 services:
   db:
-    image: postgres:latest
-    env_file: .env
+    image: postgres:15-alpine
+    container_name: ${POSTGRES_CONTAINER}
     environment:
-      - POSTGRES_DB=${POSTGRES_DB}
-      - POSTGRES_USER=${POSTGRES_USER}
-      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
-      - POSTGRES_HOST=${POSTGRES_HOST}
-      - POSTGRES_PORT=${POSTGRES_PORT}
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      PGDATA: /var/lib/postgresql/data/pgdata
+    ports:
+      - "5432:5432"
     volumes:
-      - postgres_data:/var/lib/postgresql/data/
-    ports:
-      - "${POSTGRES_PORT}:5432"
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
     restart: unless-stopped
-    networks:
-      - app-network
-
-  adminer:
-    image: adminer:latest
-    restart: always
-    ports:
-      - "8080:8080"
-    environment:
-      - ADMINER_DEFAULT_SERVER=db
-    depends_on:
-      - db
-    networks:
-      - app-network
-
-networks:
-  app-network:
-    driver: bridge
 
 volumes:
   postgres_data:

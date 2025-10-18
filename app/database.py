@@ -6,11 +6,11 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-DB_USER = os.getenv('POSTGRES_USER', 'user')
-DB_PASSWORD = os.getenv('POSTGRES_PASSWORD', 'password')
-DB_NAME = os.getenv('POSTGRES_DB', 'workreadyai_db')
-DB_HOST = os.getenv('DB_HOST', 'localhost')
-DB_PORT = os.getenv('DB_PORT', '5432')
+DB_USER = os.getenv('POSTGRES_USER', 'postgres')
+DB_PASSWORD = os.getenv('POSTGRES_PASSWORD', '123456789')
+DB_NAME = os.getenv('POSTGRES_DB', 'ai_agent_db')
+DB_HOST = 'db'
+DB_PORT = '5432'
 
 SQLALCHEMY_DATABASE_URL = f"postgresql://{DB_USER}:{DB_PASSWORD}@{DB_HOST}:{DB_PORT}/{DB_NAME}"
 
