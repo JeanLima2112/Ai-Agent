@@ -1,9 +1,10 @@
 from fastapi import FastAPI, Depends, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
+from routes.cvv_route import cvv_router
 
 app = FastAPI(title="FastAPI")
 
-# app.include_router(auth_router)
+app.include_router(cvv_router)
 
 @app.get("/")
 def read_root():
