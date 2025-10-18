@@ -1,7 +1,7 @@
 
 from typing import Annotated
 from fastapi import UploadFile, File
-from pydantic import BaseModel, Field
+from pydantic import BaseModel
 
 
 class CreateCVVDTO(BaseModel):
@@ -10,6 +10,6 @@ class CreateCVVDTO(BaseModel):
     class Config:
         json_schema_extra = {
             "example": {
-                "pdf_file": "curriculo.pdf",
+                "pdf_file": "curriculo.pdf"
             }
         }
