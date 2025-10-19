@@ -11,3 +11,4 @@ langchain-text-splitters>=0.0.1
 pymupdf>=1.23.5
 black>=23.7.0
 isort>=5.12.0
+fpdf
