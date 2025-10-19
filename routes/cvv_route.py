@@ -1,4 +1,5 @@
 import os
+import re
 from io import BytesIO
 import tempfile
 from typing import Dict, Any, Optional
@@ -18,7 +19,7 @@ load_dotenv()
 
 LLM = ChatGoogleGenerativeAI(
     model="gemini-2.5-flash",
-    temperature=1,
+    temperature=0.5,
     api_key=os.getenv("GOOGLE_API_KEY"),
 )
 
@@ -38,11 +39,20 @@ PROMPT_IA = ChatPromptTemplate.from_messages(
             "    - Se não tiver informações suficientes, descreva de forma genérica sem mencionar a falta de dados\n"
             "    - Mantenha um tom profissional e assertivo em todas as descrições\n"
             "6.  **Alinhamento com a Vaga**: Garanta que as exigências da vaga sejam claramente destacadas e que o currículo mostre como o candidato atende a elas.\n"
-            "7.  **Tecnologias e tempo de experiência**: Garanta que as tecnologias e o tempo de experiência que costam na descrição da vaga sejam atendidos.\n"
-            "**ESTRUTURA DE SAÍDA OBRIGATÓRIA (use EXATAMENTE este formato):**\n\n"
+            "7.  **Tecnologias e tempo de experiência**: Garanta que as tecnologias e o tempo de experiência que constam na descrição da vaga sejam atendidos.\n\n"
+            "**METADADOS OBRIGATÓRIOS (insira esta seção no início da resposta, antes de tudo):**\n"
+            "```\n"
+            "METADADOS:\n"
+            "TITULO: [Cargo Principal ou Desejado, extraído da descrição da vaga]\n"
+            "AUTOR: [Nome do Candidato]\n"
+            "PALAVRAS_CHAVE: [Extraia até 10 palavras-chave da DESCRIÇÃO DA VAGA, incluindo tecnologias, linguagens de programação, frameworks, ferramentas e bibliotecas MENCIONADAS NA VAGA, separadas por vírgula. Inclua APENAS tecnologias específicas, sem termos genéricos. Exemplo: Python, Django, PostgreSQL, Docker, AWS, React, Node.js, TensorFlow, Kubernetes, Git]\n"
+            "DESCRICAO: [Resumo conciso da vaga, destacando os principais requisitos e responsabilidades. Inclua as tecnologias e ferramentas mencionadas.]\n"
+            "CATEGORIA: currículo\n"
+            "```\n\n"
+            "**ESTRUTURA DE SAÍDA OBRIGATÓRIA (após os metadados, use EXATAMENTE este formato):**\n\n"
             "NOME: [Nome Completo do Candidato]\n\n"
             "CARGO: [Cargo Principal ou Desejado]\n\n"
-            "RESUMO: [Parágrafo único e conciso do resumo profissional.]\n\n"
+            "RESUMO: [Parágrafo único e conciso do resumo profissional, alinhado com a vaga.]\n\n"
             "EXPERIENCIA:\n"
             "- [Cargo] | [Empresa] | [Período]\n"
             "  - [Descrição da primeira conquista ou responsabilidade]\n"
@@ -58,7 +68,9 @@ PROMPT_IA = ChatPromptTemplate.from_messages(
             "- LinkedIn: [Seu LinkedIn]\n"
             "- GitHub: [Seu GitHub]"
         ),
-        ("user", "Extraia e reescreva o currículo a seguir, seguindo a estrutura definida.\n\nCURRÍCULO ORIGINAL:\n{context}\n\nVAGA DESCRITA:\n{input}"),
+        ("user", "Extraia e reescreva o currículo a seguir, seguindo a estrutura definida. \n"
+         "Analise cuidadosamente a descrição da vaga para extrair os metadados solicitados e alinhe o currículo com as necessidades da vaga.\n\n"
+         "CURRÍCULO ORIGINAL:\n{context}\n\nVAGA DESCRITA:\n{input}"),
     ]
 )
 
@@ -78,6 +90,33 @@ def gerar_conteudo_otimizado(file_content: bytes, description: str) -> str:
         if os.path.exists(tmp_path):
             os.unlink(tmp_path)
 
+
+    with tempfile.NamedTemporaryFile(delete=False, suffix=".pdf") as tmp:
+        tmp.write(pdf_content)
+        tmp_path = tmp.name
+    
+    try:
+        doc = fitz.open(tmp_path)
+        if not doc:
+            return "Curriculo"
+            
+        first_page = doc[0]
+        text = first_page.get_text("text")
+        
+        if text:
+            first_line = next((line.strip() for line in text.split('\n') if line.strip()), "")
+            clean_name = ' '.join(first_line.split())
+            if clean_name and len(clean_name) > 2:
+                return clean_name
+        
+        return "Curriculo"
+    except Exception as e:
+        print(f"Erro ao extrair nome do PDF: {e}")
+        return "Curriculo"
+    finally:
+        if os.path.exists(tmp_path):
+            os.unlink(tmp_path)
+
 def parse_resposta_ia(texto_ia: str) -> Dict[str, Any]:
     data = {
         "NOME": "",
@@ -86,10 +125,18 @@ def parse_resposta_ia(texto_ia: str) -> Dict[str, Any]:
         "EXPERIENCIA": [],
         "FORMACAO": [],
         "COMPETENCIAS": [],
-        "CONTATO": []
+        "CONTATO": [],
+        "METADADOS": {
+            "TITULO": "",
+            "AUTOR": "",
+            "PALAVRAS_CHAVE": "",
+            "DESCRICAO": "",
+            "CATEGORIA": "currículo"
+        }
     }
     
     if not texto_ia or not isinstance(texto_ia, str) or not texto_ia.strip():
+        print("ERRO: Texto da IA vazio ou inválido")
         return data
     
     current_section = None
@@ -100,7 +147,30 @@ def parse_resposta_ia(texto_ia: str) -> Dict[str, Any]:
             if not line:
                 continue
             
-            if ":" in line:
+            if line.startswith("```") and "METADADOS" in line.upper():
+                print("\n=== INÍCIO DO BLOCO DE METADADOS ===")
+                current_section = "METADADOS"
+                continue
+                
+            if current_section == "METADADOS":
+                if line.startswith("```"):
+                    print("=== FIM DO BLOCO DE METADADOS ===\n")
+                    print("Metadados extraídos:", data["METADADOS"])
+                    current_section = None
+                    continue
+                    
+                if ":" in line:
+                    key_part = line.split(":", 1)[0].strip().upper()
+                    value = line.split(":", 1)[1].strip()
+                    print(f"Processando metadado: {key_part} = {value}")
+                    if key_part in data["METADADOS"]:
+                        data["METADADOS"][key_part] = value
+                        print(f"Metadado '{key_part}' definido como: {value}")
+                    else:
+                        print(f"AVISO: Chave de metadado desconhecida: {key_part}")
+                continue
+                        
+            if ":" in line and current_section != "METADADOS":
                 key_part = line.split(":", 1)[0].strip().upper()
                 if key_part in ["NOME", "CARGO", "RESUMO"]:
                     key = key_part
@@ -170,10 +240,13 @@ def parse_resposta_ia(texto_ia: str) -> Dict[str, Any]:
         return data
         
     except Exception as e:
-        print(f"Erro ao processar resposta da IA: {e}")
+        print(f"ERRO CRÍTICO ao processar resposta da IA: {e}")
+        import traceback
+        traceback.print_exc()
+        print("Estado parcial dos dados:", data)
         return data
 
-def criar_pdf_estilizado_cv(dados_cv: Dict[str, Any]) -> BytesIO:
+def criar_pdf_estilizado_cv(dados_cv: Dict[str, Any], descricao_vaga: str = "") -> BytesIO:
     try:
         print("\n=== DADOS RECEBIDOS PARA GERAÇÃO DO PDF ===")
         print(f"Tipo dos dados: {type(dados_cv)}")
@@ -249,20 +322,17 @@ def criar_pdf_estilizado_cv(dados_cv: Dict[str, Any]) -> BytesIO:
                 fonte_negrito, 24, cor_titulo, True
             )
             
-            # Linha horizontal abaixo do nome (mais grossa e mais longa)
-            line_width = 1.5  # Aumentando a espessura da linha
-            line_length = 500  # Aumentando o comprimento da linha
+            line_width = 1.5
+            line_length = 500
             
-            # Desenha uma linha mais grossa para melhor visibilidade
             page.draw_line(
                 (margem, y_pos - 5),
                 (margem + line_length, y_pos - 5),
                 color=cor_titulo,
                 width=line_width
             )
-            y_pos += 15  # Aumentando o espaçamento após a linha
+            y_pos += 15
         
-        # Seção de Cargo
         if dados_cv.get("CARGO"):
             cargo = str(dados_cv["CARGO"])
             print(f"\n--- ADICIONANDO CARGO ---")
@@ -275,7 +345,6 @@ def criar_pdf_estilizado_cv(dados_cv: Dict[str, Any]) -> BytesIO:
             )
             y_pos += espacamento
         
-        # Seção de Contato
         if dados_cv.get("CONTATO"):
             contato = dados_cv["CONTATO"]
             print(f"\n--- ADICIONANDO CONTATO ---")
@@ -302,7 +371,6 @@ def criar_pdf_estilizado_cv(dados_cv: Dict[str, Any]) -> BytesIO:
         )
         y_pos += espacamento
         
-        # Seção de Resumo Profissional
         if dados_cv.get("RESUMO"):
             resumo = str(dados_cv["RESUMO"])
             print(f"\n--- ADICIONANDO RESUMO PROFISSIONAL ---")
@@ -322,11 +390,9 @@ def criar_pdf_estilizado_cv(dados_cv: Dict[str, Any]) -> BytesIO:
             )
             y_pos += espacamento
         
-        # Seção de Experiência Profissional
         if dados_cv.get("EXPERIENCIA"):
             print(f"\n--- ADICIONANDO EXPERIÊNCIA PROFISSIONAL ---")
             
-            # Garante que é uma lista
             experiencias = dados_cv["EXPERIENCIA"]
             if not isinstance(experiencias, list):
                 experiencias = [experiencias]
@@ -348,15 +414,12 @@ def criar_pdf_estilizado_cv(dados_cv: Dict[str, Any]) -> BytesIO:
                 print(f"  Tipo: {type(exp)}")
                 print(f"  Conteúdo: {exp}")
                 
-                # Se for string, tenta converter para dicionário
                 if isinstance(exp, str):
                     exp = {"titulo": exp, "detalhes": []}
-                # Se não for dicionário, pula para o próximo
                 elif not isinstance(exp, dict):
                     print(f"  Experiência {idx}: Formato não suportado")
                     continue
                 
-                # Extrai título da experiência
                 cabecalho = []
                 if exp.get("titulo"):
                     cabecalho.append(str(exp["titulo"]).strip())
@@ -374,7 +437,6 @@ def criar_pdf_estilizado_cv(dados_cv: Dict[str, Any]) -> BytesIO:
                         fonte_negrito, 10.5, cor_texto, True
                     )
                 
-                # Processa os detalhes da experiência
                 if exp.get("detalhes") and isinstance(exp["detalhes"], list):
                     print(f"  Número de detalhes: {len(exp['detalhes'])}")
                     for detalhe in exp["detalhes"]:
@@ -383,10 +445,9 @@ def criar_pdf_estilizado_cv(dados_cv: Dict[str, Any]) -> BytesIO:
                             
                         print(f"  Processando detalhe: {detalhe[:100]}...")
                         
-                        # Quebra o texto em linhas menores se for muito grande
                         texto = str(detalhe).strip()
                         linhas = []
-                        while len(texto) > 150:  # Quebra em linhas de até 150 caracteres
+                        while len(texto) > 150:
                             espaco = texto[:150].rfind(' ')
                             if espaco == -1:
                                 espaco = 150
@@ -395,25 +456,22 @@ def criar_pdf_estilizado_cv(dados_cv: Dict[str, Any]) -> BytesIO:
                         if texto:
                             linhas.append(texto)
                         
-                        # Adiciona cada linha com recuo
                         for i, linha in enumerate(linhas):
-                            prefixo = "• " if i == 0 else "  "  # Só coloca o marcador na primeira linha
+                            prefixo = "• " if i == 0 else "  "
                             y_pos = adicionar_texto(
                                 margem + 20, y_pos,
                                 f"{prefixo}{linha}",
                                 fonte_normal, 10, cor_texto
                             )
-                            y_pos += 5  # Espaço entre linhas
+                            y_pos += 5  
                         
-                        y_pos += 2  # Espaço entre itens
+                        y_pos += 2  
                 
-                y_pos += 5  # Espaço após a seção de experiência
+                y_pos += 5  
         
-        # Seção de Formação Acadêmica
         if dados_cv.get("FORMACAO"):
             print(f"\n--- ADICIONANDO FORMAÇÃO ACADÊMICA ---")
             
-            # Garante que é uma lista
             formacoes = dados_cv["FORMACAO"]
             if not isinstance(formacoes, list):
                 formacoes = [formacoes]
@@ -435,7 +493,6 @@ def criar_pdf_estilizado_cv(dados_cv: Dict[str, Any]) -> BytesIO:
                 print(f"  Tipo: {type(form)}")
                 print(f"  Conteúdo: {form}")
                 
-                # Se for string, usa como está
                 if isinstance(form, str):
                     y_pos = adicionar_texto(
                         margem, y_pos,
@@ -444,7 +501,6 @@ def criar_pdf_estilizado_cv(dados_cv: Dict[str, Any]) -> BytesIO:
                     )
                     y_pos += 3
                     continue
-                # Se for dicionário, processa os campos
                 elif isinstance(form, dict):
                     linha = []
                     if form.get("curso"):
@@ -461,7 +517,6 @@ def criar_pdf_estilizado_cv(dados_cv: Dict[str, Any]) -> BytesIO:
                             fonte_normal, 10, cor_texto
                         )
                         
-                        # Adiciona descrição se existir
                         if form.get("descricao"):
                             y_pos = adicionar_texto(
                                 margem + 10, y_pos,
@@ -497,7 +552,6 @@ def criar_pdf_estilizado_cv(dados_cv: Dict[str, Any]) -> BytesIO:
                 
                 y_pos += 3
         
-        # Seção de Competências
         if dados_cv.get("COMPETENCIAS"):
             print(f"\n--- ADICIONANDO HABILIDADES ---")
             
@@ -548,13 +602,85 @@ def criar_pdf_estilizado_cv(dados_cv: Dict[str, Any]) -> BytesIO:
             
             y_pos += espacamento
         
-        # Gerando o PDF final
         print("\n=== GERANDO PDF FINAL ===")
+        metadata = doc.metadata
+        
+        if dados_cv.get("METADADOS"):
+            metadados = dados_cv["METADADOS"]
+            print(f"\n=== METADADOS EXTRAÍDOS ===")
+            print(f"Título: {metadados.get('TITULO')}")
+            print(f"Autor: {metadados.get('AUTOR')}")
+            print(f"Descrição: {metadados.get('DESCRICAO')}")
+            print(f"Palavras-chave: {metadados.get('PALAVRAS_CHAVE')}")
+            
+            if metadados.get("TITULO"):
+                metadata["title"] = str(metadados["TITULO"])
+                print(f"Definindo título do PDF: {metadata['title']}")
+            elif dados_cv.get("CARGO"):
+                metadata["title"] = str(dados_cv["CARGO"])
+                print(f"Usando cargo como título do PDF: {metadata['title']}")
+            
+            if metadados.get("AUTOR"):
+                metadata["author"] = str(metadados["AUTOR"])
+                print(f"Definindo autor do PDF: {metadata['author']}")
+            elif dados_cv.get("NOME"):
+                metadata["author"] = str(dados_cv["NOME"])
+                print(f"Usando nome como autor do PDF: {metadata['author']}")
+            
+            if metadados.get("DESCRICAO"):
+                descricao = str(metadados["DESCRICAO"])
+                frases = [f.strip() for f in descricao.split('.') if f.strip()]
+                
+                if len(frases) >= 2:
+                    linha1 = frases[0][:200]
+                    linha2 = frases[1][:200] if len(frases) > 1 else linha1
+                else:
+                    meio = len(descricao) // 2
+                    linha1 = descricao[:meio].strip()
+                    linha2 = descricao[meio:].strip()
+                
+                metadata["subject"] = f"{linha1}\n{linha2}"
+                print(f"Assunto formatado (2 linhas):\n{metadata['subject']}")
+                
+            elif dados_cv.get("RESUMO"):
+                resumo = str(dados_cv["RESUMO"])
+                meio = len(resumo) // 2
+                linha1 = resumo[:meio].strip()
+                linha2 = resumo[meio:].strip()
+                metadata["subject"] = f"{linha1}\n{linha2}"
+                print(f"Usando resumo como assunto (2 linhas):\n{metadata['subject']}")
+            
+            if metadados.get("PALAVRAS_CHAVE"):
+                palavras_chave = metadados['PALAVRAS_CHAVE']
+                if isinstance(palavras_chave, str):
+                    palavras = [p.strip() for p in palavras_chave.split(',') if p.strip()]
+                else:
+                    palavras = [str(p).strip() for p in palavras_chave]
+                
+                palavras = [p for p in palavras if len(p) > 3][:10]  # Limita a 10 palavras-chave
+                
+                if palavras:
+                    metadata["keywords"] = ", ".join(["currículo"] + palavras)
+                    print(f"Palavras-chave extraídas: {metadata['keywords']}")
+                
+            elif dados_cv.get("RESUMO"):
+                resumo = str(dados_cv["RESUMO"])
+                palavras = [p for p in re.findall(r'\b\w{4,}\b', resumo.lower()) 
+                          if p not in ['sobre', 'para', 'como', 'mais', 'muito', 'sobre', 'sobre', 'sobre']][:10]
+                if palavras:
+                    metadata["keywords"] = ", ".join(["currículo"] + palavras)
+                    print(f"Palavras-chave extraídas do resumo: {metadata['keywords']}")
+            
+            print("=== FIM DOS METADADOS EXTRAÍDOS ===\n")
+        
+        doc.set_metadata(metadata)
+        
         pdf_buffer = BytesIO()
         doc.save(pdf_buffer)
         pdf_buffer.seek(0)
         
         print(f"Tamanho do PDF gerado: {len(pdf_buffer.getvalue())} bytes")
+        print(f"Metadados do PDF: {metadata}")
         return pdf_buffer
         
     except Exception as e:
@@ -572,6 +698,9 @@ async def create_cvv(
     pdf_file: UploadFile = File(...),
     description: str = Form(...)
 ):
+    print("\n=== INÍCIO DO PROCESSAMENTO DO CV ===")
+    print(f"Arquivo recebido: {pdf_file.filename}")
+    print(f"Descrição da vaga: {description}")
     if not pdf_file or not pdf_file.filename:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -586,8 +715,10 @@ async def create_cvv(
     
     try:
         try:
+            print("\nLendo conteúdo do arquivo PDF...")
             file_content = await pdf_file.read()
             if not file_content:
+                print("ERRO: O arquivo PDF está vazio")
                 raise ValueError("O arquivo PDF está vazio")
         except Exception as e:
             raise ValueError(f"Erro ao ler o arquivo: {str(e)}")
@@ -596,19 +727,37 @@ async def create_cvv(
             raise ValueError("O arquivo é muito grande. O tamanho máximo permitido é 10MB.")
         
         try:
+            print("\nChamando gerar_conteudo_otimizado...")
             conteudo_bruto_ia = gerar_conteudo_otimizado(file_content, description)
             if not conteudo_bruto_ia or not str(conteudo_bruto_ia).strip():
+                print("ERRO: Não foi possível processar o conteúdo do currículo - retorno vazio da IA")
                 raise ValueError("Não foi possível processar o conteúdo do currículo")
+            
+            print("\nConteúdo bruto da IA (primeiros 500 caracteres):")
+            print(str(conteudo_bruto_ia)[:500] + ("..." if len(str(conteudo_bruto_ia)) > 500 else ""))
                 
+            print("\nIniciando análise da resposta da IA...")
             dados_estruturados = parse_resposta_ia(conteudo_bruto_ia)
             
             if not dados_estruturados or not isinstance(dados_estruturados, dict):
+                print("ERRO: Falha ao processar a estrutura do currículo - dados_estruturados inválido")
+                print(f"Tipo de dados_estruturados: {type(dados_estruturados)}")
+                print(f"Conteúdo: {dados_estruturados}")
                 raise ValueError("Falha ao processar a estrutura do currículo")
                 
-            pdf_buffer = criar_pdf_estilizado_cv(dados_estruturados)
+            print("\nDados estruturados processados com sucesso")
+                
+            print("\nCriando PDF estilizado...")
+            print(f"Dados sendo passados para criar_pdf_estilizado_cv: {list(dados_estruturados.keys())}")
+            print(f"Metadados disponíveis: {dados_estruturados.get('METADADOS', 'Nenhum metadado encontrado')}")
+            
+            pdf_buffer = criar_pdf_estilizado_cv(dados_estruturados, description)
             
             if not pdf_buffer or pdf_buffer.getbuffer().nbytes == 0:
+                print("ERRO: Falha ao gerar o PDF - buffer vazio ou inválido")
                 raise ValueError("Falha ao gerar o PDF")
+                
+            print(f"PDF gerado com sucesso! Tamanho: {pdf_buffer.getbuffer().nbytes} bytes")
                 
         except Exception as e:
             print(f"Erro ao processar o currículo: {e}")
@@ -617,11 +766,19 @@ async def create_cvv(
                 detail=f"Erro ao processar o currículo: {str(e)}"
             )
 
+        nome_candidato = dados_estruturados.get("NOME", "Curriculo").strip()
+        
+        nome_arquivo = f"{nome_candidato}-Curriculo.pdf"
+        nome_arquivo = "".join(c if c.isalnum() or c in ('-', '_', '.', ' ') else '_' for c in nome_arquivo)
+        nome_arquivo = nome_arquivo.replace(" ", "_")
+        if not nome_arquivo.lower().endswith('.pdf'):
+            nome_arquivo += '.pdf'
+        
         return StreamingResponse(
             pdf_buffer,
             media_type="application/pdf",
             headers={
-                "Content-Disposition": f"attachment; filename=CV_Otimizado_{pdf_file.filename}",
+                "Content-Disposition": f"attachment; filename=\"{nome_arquivo}\"",
                 "Content-Length": str(pdf_buffer.getbuffer().nbytes)
             }
         )
