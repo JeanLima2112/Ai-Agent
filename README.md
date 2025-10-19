@@ -21,8 +21,8 @@ WorkReadyAI é uma aplicação web inovadora que otimiza currículos para sistem
   - Upload de PDF
   - Análise de descrição de vaga
   - Geração de versão otimizada
-  
 - 🎯 **Interface Intuitiva**
+
   - Design moderno e responsivo
   - Upload simplificado de arquivos
   - Interface amigável ao usuário
@@ -35,6 +35,7 @@ WorkReadyAI é uma aplicação web inovadora que otimiza currículos para sistem
 ## 🛠️ Tecnologias
 
 ### Backend
+
 - 🐍 Python 3.10
 - ⚡ FastAPI
 - 🚀 Uvicorn
@@ -43,6 +44,7 @@ WorkReadyAI é uma aplicação web inovadora que otimiza currículos para sistem
 - 📑 PyMuPDF
 
 ### Frontend
+
 - ⚛️ React
 - 📦 Node.js 20
 - ⚡ Vite
@@ -53,22 +55,23 @@ WorkReadyAI é uma aplicação web inovadora que otimiza currículos para sistem
 ## 📁 Estrutura do Projeto
 
 Work_Ready-AI/  
-├── backend/             # Código do backend em Python  
-│   ├── app/             # Lógica principal da aplicação  
-│   │   ├── routes/      # Endpoints da API  
-│   │   ├── services/    # Serviços de processamento e integração com IA  
-│   │   └── utils/       # Funções utilitárias  
-│   ├── Dockerfile       # Dockerfile do backend  
-│   └── requirements.txt # Dependências do Python  
-├── frontend/            # Código do frontend em React  
-│   ├── src/             # Código fonte da aplicação  
-│   ├── Dockerfile       # Dockerfile do frontend  
-│   └── package.json     # Dependências do Node.js  
-├── docker-compose.yml   # Configuração dos containers  
-├── .env.example         # Exemplo de variáveis de ambiente  
-└── Makefile             # Comandos auxiliares  
+├── backend/ # Código do backend em Python  
+│ ├── app/ # Lógica principal da aplicação  
+│ │ ├── routes/ # Endpoints da API  
+│ │ ├── services/ # Serviços de processamento e integração com IA  
+│ │ └── utils/ # Funções utilitárias  
+│ ├── Dockerfile # Dockerfile do backend  
+│ └── requirements.txt # Dependências do Python  
+├── frontend/ # Código do frontend em React  
+│ ├── src/ # Código fonte da aplicação  
+│ ├── Dockerfile # Dockerfile do frontend  
+│ └── package.json # Dependências do Node.js  
+├── docker-compose.yml # Configuração dos containers  
+├── .env.example # Exemplo de variáveis de ambiente  
+└── Makefile # Comandos auxiliares
 
 ## Pré-requisitos
+
 - Docker
 - Docker Compose
 
@@ -82,13 +85,16 @@ Work_Ready-AI/
 ### Instalação
 
 1. **Clone o Repositório**
+
    ```bash
    git clone https://github.com/JeanLima2112/Work_Ready-AI.git
    cd Work_Ready-AI
    ```
 
 2. **Configure o Ambiente**
+
    - Crie um arquivo `.env` baseado no `.env.example`:
+
    ```env
    # API Keys
    GOOGLE_API_KEY=sua_google_api_key
@@ -101,6 +107,7 @@ Work_Ready-AI/
    ```
 
 3. **Inicie os Containers**
+
    ```bash
    docker-compose up -d --build
    ```
